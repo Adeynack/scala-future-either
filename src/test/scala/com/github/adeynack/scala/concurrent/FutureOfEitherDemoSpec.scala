@@ -72,7 +72,7 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
           // Value of `Right` can change ... Yes
           // Type of `Right` can change .... No
           //
-          .rightFlatMapPartial {
+          .rightFlatMapWithPF {
             case u @ RawUser("allsolow", _) => Future.successful(Right(u.copy(username = "AllNoLongerSoLow")))
             case RawUser("DIE", _) => Future.successful(Left("I was asked to die :'( buuuuhuuuuu..."))
           }
@@ -85,7 +85,7 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
           //
           // NB: The match has to be COMPLETE, otherwise a MatchException will be thrown.
           //
-          .rightFlatMap {
+          .rightFlatMapWith {
             case RawUser("Norris", _) => Future.successful(Left("Cannot handle M. Norris!"))
             case user: RawUser => moreAsyncServiceCall(user).map(Right(_))
           }

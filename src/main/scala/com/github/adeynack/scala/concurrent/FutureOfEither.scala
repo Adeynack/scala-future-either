@@ -9,9 +9,10 @@ object FutureOfEither {
     /**
       * Maps the [[Right]] value through a function that returns a [[Future]] of the new [[Right]] value.
       *
-      * - Can be changed to a `Left`:  No
-      * - Value of `Right` can change: Yes
-      * - Type of `Right` can change:  Yes
+      * - Can be changed to a `Left`:   No
+      * - Value of `Right` can change:  Yes
+      * - Type of `Right` can change:   Yes
+      * - Value returned as Future:     No
       *
       */
     def rightMap[S](f: B => Future[S])(implicit executor: ExecutionContext): Future[Either[A, S]] = underlying.flatMap {
@@ -19,16 +20,29 @@ object FutureOfEither {
       case Right(b) => f(b).map(Right[A, S])
     }
 
+    // todo: rightFlatMap
+    //    * - Can be changed to a `Left`:   No
+    //    * - Value of `Right` can change:  Yes
+    //    * - Type of `Right` can change:   Yes
+    //    * - Value returned as Future:     Yes
+
+    // todo: rightMapWith
+    //    * - Can be changed to a `Left`:   Yes
+    //    * - Value of `Right` can change:  Yes
+    //    * - Type of `Right` can change:   Yes
+    //    * - Value returned as Future:     No
+
     /**
       * Maps the [[Right]] value through a function that returns a [[Future]] of the new [[Either]] value (can
       * potentially change the input [[Right]] value into a [[Left]] if need be).
       *
-      * - Can be changed to a `Left`:  Yes
-      * - Value of `Right` can change: Yes
-      * - Type of `Right` can change:  Yes
+      * - Can be changed to a `Left`:   Yes
+      * - Value of `Right` can change:  Yes
+      * - Type of `Right` can change:   Yes
+      * - Value returned as Future:     Yes
       *
       */
-    def rightFlatMap[S](f: B => Future[Either[A, S]])(implicit executor: ExecutionContext): Future[Either[A, S]] = underlying.flatMap {
+    def rightFlatMapWith[S](f: B => Future[Either[A, S]])(implicit executor: ExecutionContext): Future[Either[A, S]] = underlying.flatMap {
       case Left(a) => Future.successful(Left[A, S](a))
       case Right(b) => f(b)
     }
@@ -36,12 +50,13 @@ object FutureOfEither {
     /**
       * Maps the [[Right]] value through a function that returns a [[Future]] of the new [[Right]] value.
       *
-      * - Can be changed to a `Left`:  Yes
-      * - Value of `Right` can change: Yes
-      * - Type of `Right` can change:  No
+      * - Can be changed to a `Left`:   Yes
+      * - Value of `Right` can change:  Yes
+      * - Type of `Right` can change:   No
+      * - Value returned as Future:     Yes
       *
       */
-    def rightFlatMapPartial(f: PartialFunction[B, Future[Either[A, B]]])(implicit executor: ExecutionContext): Future[Either[A, B]] = underlying.flatMap {
+    def rightFlatMapWithPF(f: PartialFunction[B, Future[Either[A, B]]])(implicit executor: ExecutionContext): Future[Either[A, B]] = underlying.flatMap {
       case _: Left[A, B] => underlying
       case r: Right[A, B] => f.applyOrElse(r.value, (_: B) => underlying)
     }
