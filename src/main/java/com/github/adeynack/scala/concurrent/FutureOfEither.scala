@@ -1,5 +1,6 @@
+package com.github.adeynack.scala.concurrent
+
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 
 object FutureOfEither {
 

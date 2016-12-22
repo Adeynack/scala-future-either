@@ -1,5 +1,4 @@
-import FutureOfEither._
-import org.scalatest.{FreeSpec, Matchers}
+package com.github.adeynack.scala.concurrent
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
