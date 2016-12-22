@@ -1,8 +1,11 @@
 package com.github.adeynack.scala.concurrent
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.github.adeynack.scala.concurrent.FutureOfEither._
+import org.scalatest.{FreeSpec, Matchers}
+
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
 

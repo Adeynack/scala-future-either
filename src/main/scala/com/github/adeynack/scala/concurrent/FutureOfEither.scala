@@ -1,6 +1,6 @@
 package com.github.adeynack.scala.concurrent
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 object FutureOfEither {
 
@@ -14,7 +14,7 @@ object FutureOfEither {
       * - Type of `Right` can change:  Yes
       *
       */
-    def rightMap[S](f: B => Future[S]): Future[Either[A, S]] = underlying.flatMap {
+    def rightMap[S](f: B => Future[S])(implicit executor: ExecutionContext): Future[Either[A, S]] = underlying.flatMap {
       case Left(a) => Future.successful(Left[A, S](a))
       case Right(b) => f(b).map(Right[A, S])
     }
@@ -28,7 +28,7 @@ object FutureOfEither {
       * - Type of `Right` can change:  Yes
       *
       */
-    def rightFlatMap[S](f: B => Future[Either[A, S]]): Future[Either[A, S]] = underlying.flatMap {
+    def rightFlatMap[S](f: B => Future[Either[A, S]])(implicit executor: ExecutionContext): Future[Either[A, S]] = underlying.flatMap {
       case Left(a) => Future.successful(Left[A, S](a))
       case Right(b) => f(b)
     }
@@ -41,11 +41,9 @@ object FutureOfEither {
       * - Type of `Right` can change:  No
       *
       */
-    def rightFlatMapPartial(f: PartialFunction[B, Future[Either[A, B]]]): Future[Either[A, B]] = underlying.flatMap {
-      case left: Left[A, B] => Future.successful(left)
-      case right @ Right(b) =>
-        if (f.isDefinedAt(b)) f(b)
-        else Future.successful(right)
+    def rightFlatMapPartial(f: PartialFunction[B, Future[Either[A, B]]])(implicit executor: ExecutionContext): Future[Either[A, B]] = underlying.flatMap {
+      case _: Left[A, B] => underlying
+      case r: Right[A, B] => f.applyOrElse(r.value, (_: B) => underlying)
     }
 
   }
