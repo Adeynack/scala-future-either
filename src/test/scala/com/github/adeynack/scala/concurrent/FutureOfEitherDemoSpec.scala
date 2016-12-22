@@ -301,12 +301,70 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
 
       }
 
+      def authenticateFlatten(request: Request): Future[Result] = {
+        doSomethingToRequestAndReturn(request)
+          .flatMap(getUserInfo)
+          //
+          // -- rightFlatMapPartial --> From `Right[A,B]` to `Either
+          //
+          // Can be changed to a `Left` .... Yes
+          // Value of `Right` can change ... Yes
+          // Type of `Right` can change .... No
+          //
+          .rightMapWithPF {
+            case u @ RawUser("allsolow", _) => Right(u.copy(username = "AllNoLongerSoLow"))
+            case RawUser("DIE", _) => Left("I was asked to die :'( buuuuhuuuuu...")
+          }
+          //
+          // -- rightFlatMap --> from `Right[A,B]` to `Either[A,S]`
+          //
+          // Can be changed to a `Left` .... Yes
+          // Value of `Right` can change ... Yes
+          // Type of `Right` can change .... Yes
+          //
+          // NB: The match has to be COMPLETE, otherwise a MatchException will be thrown.
+          //
+          .rightFlatMapWith {
+            case RawUser("Norris", _) => Future(Left("Cannot handle M. Norris!"))
+            case user: RawUser => moreAsyncServiceCall(user).map(Right(_))
+          }
+          //
+          // -- rightMap --> from `Right[A,B]` to `Right[A,S]`
+          //
+          // Can be changed to a `Left` .... No
+          // Value of `Right` can change ... Yes
+          // Type of `Right` can change .... Yes
+          //
+          .rightMap {
+            case RawUser(name, id) => User(s"ID:$id", name)
+          }
+          //
+          // Normal Scala `flatMap`
+          //
+          .map {
+            case Left(reason: String) => Unauthorized(reason)
+            case Right(user) => OK(s"Authenticated as ${user.name}")
+          }
+          //
+          // Normal Scala `recover`
+          //
+          .recover {
+            case (error) =>
+              println(error)
+              InternalServerError("Could not authenticate request")
+          }
+
+      }
+
       def authWithName(userQueryParam: String): Result = {
-        val futureResult = authenticate(Request(
+        val request = Request(
           if (userQueryParam == null) Map()
           else Map("user" -> Seq(userQueryParam))
-        ))
-        Await.result(futureResult, 1.minute)
+        )
+        val result1 = Await.result(authenticate(request), 1.minute)
+        val result2 = Await.result(authenticateFlatten(request), 1.minute)
+        result1 shouldEqual result2
+        result1
       }
 
       "authenticate when username is passed as query parameter" in {
