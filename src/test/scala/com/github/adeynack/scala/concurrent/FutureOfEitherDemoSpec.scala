@@ -16,13 +16,13 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
     "rightMap" - {
 
       "maps a right value" in {
-        val f = success("42").rightMap(_.toInt)
+        val f = success("42").rightMapTo(_.toInt)
         Await.result(f, 1.minute).right.get shouldEqual 42
       }
 
       "maps a right value with failure" in {
         class TestException extends Exception
-        val f = success("asd").rightMap(_ => throw new TestException)
+        val f = success("asd").rightMapTo(_ => throw new TestException)
         intercept[TestException] {
           Await.result(f, 1.minute)
         }
@@ -33,12 +33,12 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
     "rightFlatMap" - {
 
       "flat maps a right value from another future" in {
-        val f = success("42").rightFlatMap(s => Future(s.toInt))
+        val f = success("42").rightFlatMapTo(s => Future(s.toInt))
         Await.result(f, 1.minute).right.get shouldEqual 42
       }
 
       "flat maps a right value from another failing future" in {
-        val f = Future.successful(Right[Int, String]("asd")).rightFlatMap(s => Future(s.toInt))
+        val f = Future.successful(Right[Int, String]("asd")).rightFlatMapTo(s => Future(s.toInt))
         intercept[NumberFormatException] {
           Await.result(f, 1.minute)
         }
@@ -46,14 +46,14 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
 
       "flat maps a right value from another future ... but creating that future fails" in {
         class TestException extends Exception
-        val f = Future.successful(Right[Int, String]("asd")).rightFlatMap(_ => throw new TestException)
+        val f = Future.successful(Right[Int, String]("asd")).rightFlatMapTo(_ => throw new TestException)
         intercept[TestException] {
           Await.result(f, 1.minute)
         }
       }
 
       "flat maps a right value from a left value" in {
-        val f = Future.successful(Left[Int, String](-1)).rightFlatMap(s => Future(s.toInt))
+        val f = Future.successful(Left[Int, String](-1)).rightFlatMapTo(s => Future(s.toInt))
         Await.result(f, 1.minute).left.get shouldEqual -1
       }
 
@@ -62,20 +62,20 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
     "rightMapWith" - {
 
       "maps a right value to another Either" in {
-        val f = success("42").rightMapWith(s => Right(Seq(s, "Life", "Universe", "Everything")))
+        val f = success("42").rightMap(s => Right(Seq(s, "Life", "Universe", "Everything")))
         Await.result(f, 1.minute).right.get shouldEqual Seq("42", "Life", "Universe", "Everything")
       }
 
       "maps a right value to another Either with failure" in {
         class TestException extends Exception
-        val f = success("42").rightMapWith(_ => throw new TestException)
+        val f = success("42").rightMap(_ => throw new TestException)
         intercept[TestException] {
           Await.result(f, 1.minute)
         }
       }
 
       "maps a right value to a left" in {
-        val f = success("42").rightMapWith(s => Left("I do not like this value"))
+        val f = success("42").rightMap(s => Left("I do not like this value"))
         Await.result(f, 1.minute).left.get shouldEqual "I do not like this value"
       }
 
@@ -84,13 +84,13 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
     "rightFlatMapWith" - {
 
       "flat maps a right value to another future of either" in {
-        val f = success("42").rightFlatMapWith(s => Future(Right(Seq(s, "Life", "Universe", "Everything"))))
+        val f = success("42").rightFlatMap(s => Future(Right(Seq(s, "Life", "Universe", "Everything"))))
         Await.result(f, 1.minute).right.get shouldEqual Seq("42", "Life", "Universe", "Everything")
       }
 
       "maps a right value to another failure future of either" in {
         class TestException extends Exception
-        val f = success("42").rightFlatMapWith(s => Future.failed(new TestException))
+        val f = success("42").rightFlatMap(s => Future.failed(new TestException))
         intercept[TestException] {
           Await.result(f, 1.minute)
         }
@@ -98,14 +98,14 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
 
       "maps a right value to another future ... but creating that future fails" in {
         class TestException extends Exception
-        val f = success("42").rightFlatMapWith(_ => throw new TestException)
+        val f = success("42").rightFlatMap(_ => throw new TestException)
         intercept[TestException] {
           Await.result(f, 1.minute)
         }
       }
 
       "maps a right value to another future of left" in {
-        val f = success("42").rightFlatMapWith(s => Future(Left("I do not like this value")))
+        val f = success("42").rightFlatMap(s => Future(Left("I do not like this value")))
         Await.result(f, 1.minute).left.get shouldEqual "I do not like this value"
       }
 
@@ -114,14 +114,14 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
     "rightMapWithPF" - {
 
       "maps a right value to another value using a partial function that matches and returns another right" in {
-        val f = success("42").rightMapWithPF {
+        val f = success("42").rightMapPF {
           case "42" => Right("Life, Universe, Everything!")
         }
         Await.result(f, 1.minute).right.get shouldEqual "Life, Universe, Everything!"
       }
 
       "maps a right value to the same value using a partial function that does not match" in {
-        val f = success("41").rightMapWithPF {
+        val f = success("41").rightMapPF {
           case "42" => Right("Life, Universe, Everything!")
         }
         Await.result(f, 1.minute).right.get shouldEqual "41"
@@ -129,7 +129,7 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
 
       "maps a right value using a partial function that fails" in {
         class TestException extends Exception
-        val f = success("42").rightMapWithPF {
+        val f = success("42").rightMapPF {
           case _ => throw new TestException
         }
         intercept[TestException] {
@@ -138,7 +138,7 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
       }
 
       "maps a right value to another value using a partial function that matches and returns a left" in {
-        val f = success("41").rightMapWithPF {
+        val f = success("41").rightMapPF {
           case "41" => Left("Not fun...")
         }
         Await.result(f, 1.minute).left.get shouldEqual "Not fun..."
@@ -149,14 +149,14 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
     "rightFlatMapWithPF" - {
 
       "maps a right value to a future of another value using a partial function that matches and returns another right" in {
-        val f = success("42").rightFlatMapWithPF {
+        val f = success("42").rightFlatMapPF {
           case "42" => Future(Right("Life, Universe, Everything!"))
         }
         Await.result(f, 1.minute).right.get shouldEqual "Life, Universe, Everything!"
       }
 
       "maps a right value to a future the same value using a partial function that does not match" in {
-        val f = success("41").rightFlatMapWithPF {
+        val f = success("41").rightFlatMapPF {
           case "42" => Future(Right("Life, Universe, Everything!"))
         }
         Await.result(f, 1.minute).right.get shouldEqual "41"
@@ -164,7 +164,7 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
 
       "maps a right value to a future using a partial function that fails" in {
         class TestException extends Exception
-        val f = success("42").rightFlatMapWithPF {
+        val f = success("42").rightFlatMapPF {
           case _ => Future.failed(new TestException)
         }
         intercept[TestException] {
@@ -174,7 +174,7 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
 
       "maps a right value to a future using a partial function ... but that future creation fails" in {
         class TestException extends Exception
-        val f = success("42").rightFlatMapWithPF {
+        val f = success("42").rightFlatMapPF {
           case _ => throw new TestException
         }
         intercept[TestException] {
@@ -183,7 +183,7 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
       }
 
       "maps a right value to a future another value using a partial function that matches and returns a left" in {
-        val f = success("41").rightFlatMapWithPF {
+        val f = success("41").rightFlatMapPF {
           case "41" => Future(Left("Not fun..."))
         }
         Await.result(f, 1.minute).left.get shouldEqual "Not fun..."
@@ -256,7 +256,7 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
           // Value of `Right` can change ... Yes
           // Type of `Right` can change .... No
           //
-          .rightFlatMapWithPF {
+          .rightFlatMapPF {
             case u @ RawUser("allsolow", _) => Future.successful(Right(u.copy(username = "AllNoLongerSoLow")))
             case RawUser("DIE", _) => Future.successful(Left("I was asked to die :'( buuuuhuuuuu..."))
           }
@@ -269,7 +269,7 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
           //
           // NB: The match has to be COMPLETE, otherwise a MatchException will be thrown.
           //
-          .rightFlatMapWith {
+          .rightFlatMap {
             case RawUser("Norris", _) => Future.successful(Left("Cannot handle M. Norris!"))
             case user: RawUser => moreAsyncServiceCall(user).map(Right(_))
           }
@@ -280,7 +280,7 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
           // Value of `Right` can change ... Yes
           // Type of `Right` can change .... Yes
           //
-          .rightFlatMap {
+          .rightFlatMapTo {
             case RawUser(name, id) => Future.successful[User](User(s"ID:$id", name))
           }
           //
@@ -311,7 +311,7 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
           // Value of `Right` can change ... Yes
           // Type of `Right` can change .... No
           //
-          .rightMapWithPF {
+          .rightMapPF {
             case u @ RawUser("allsolow", _) => Right(u.copy(username = "AllNoLongerSoLow"))
             case RawUser("DIE", _) => Left("I was asked to die :'( buuuuhuuuuu...")
           }
@@ -324,7 +324,7 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
           //
           // NB: The match has to be COMPLETE, otherwise a MatchException will be thrown.
           //
-          .rightFlatMapWith {
+          .rightFlatMap {
             case RawUser("Norris", _) => Future(Left("Cannot handle M. Norris!"))
             case user: RawUser => moreAsyncServiceCall(user).map(Right(_))
           }
@@ -335,7 +335,7 @@ class FutureOfEitherDemoSpec extends FreeSpec with Matchers {
           // Value of `Right` can change ... Yes
           // Type of `Right` can change .... Yes
           //
-          .rightMap {
+          .rightMapTo {
             case RawUser(name, id) => User(s"ID:$id", name)
           }
           //
